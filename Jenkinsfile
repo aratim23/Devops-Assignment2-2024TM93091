@@ -34,7 +34,7 @@ pipeline {
                     // Run tests from repo root, adding ACEestFitness to PYTHONPATH
                     sh """
                         export PYTHONPATH=$PWD/ACEestFitness
-                        ./venv/bin/pytest tests --maxfail=1 --disable-warnings -v
+                        ./venv/bin/pytest ./tests --maxfail=1 --disable-warnings -v
                     """
                     }
                 }

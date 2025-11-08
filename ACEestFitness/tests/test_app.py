@@ -5,7 +5,7 @@ import os
 # Add the ACEestFitness folder to sys.path dynamically
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from ACEestFitness import app
+from app import app
 
 @pytest.fixture
 def client():

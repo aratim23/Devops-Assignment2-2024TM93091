@@ -21,21 +21,22 @@ pipeline {
         stage('Build & Test') {
             steps {
                 script {
-                // Create Python virtual environment inside ACEestFitness folder
+                    // Create virtual environment inside ACEestFitness
                     sh """
                         python3 -m venv ACEestFitness/venv
                         ACEestFitness/venv/bin/pip install --upgrade pip
                         ACEestFitness/venv/bin/pip install -r requirements.txt
                     """
 
-                // Set PYTHONPATH to workspace root so ACEestFitness is importable
+                    // Run pytest from inside ACEestFitness
                     sh """
-                        export PYTHONPATH=$PWD
-                        ACEestFitness/venv/bin/pytest ACEestFitness/tests --maxfail=1 --disable-warnings -v
+                        cd ACEestFitness
+                        ../venv/bin/pytest tests --maxfail=1 --disable-warnings -v
                     """
                 }
             }
         }
+
 
         stage('Package Artifacts') {
             steps {

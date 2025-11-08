@@ -27,7 +27,7 @@ pipeline {
                             sh """
                                 python3 -m venv venv
                                 ./venv/bin/pip install -r requirements.txt
-                                export PYTHONPATH=$PWD
+                                export PYTHONPATH=$PWD/ACEestFitness
                                 ./venv/bin/pytest --maxfail=1 --disable-warnings -v
                             """
                         }

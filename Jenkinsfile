@@ -17,7 +17,7 @@ pipeline {
                 ])
             }
         }
-        
+
         stage('Build & Test') {
             steps {
                 script {
@@ -26,7 +26,7 @@ pipeline {
                         dir(version) {
                             sh """
                                python3 -m venv venv
-                               source venv/bin/activate
+                               . venv/bin/activate
                                pip install -r requirements.txt
                                pytest || exit 1
                                deactivate

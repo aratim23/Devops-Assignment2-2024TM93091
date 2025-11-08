@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        VERSIONS = "ACEest-Fitness"
+        VERSIONS = "ACEestFitness"
     }
 
     stages {

@@ -13,7 +13,7 @@ pipeline {
                     branches: [[name: '*/main']],  // or your branch
                     userRemoteConfigs: [[
                         url: 'git@github.com:aratim23/Devops-Assignment2-2024TM93091.git',
-                        credentialsId: 'e41fcc47-615b-4ac6-8999-2f6b8fbe1f5b'
+                        credentialsId: 'e0a63a44-b53b-411c-9877-1b734a267ffc'
                     ]]
                 ])
             }

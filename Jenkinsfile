@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_USER = "amanoj23"   // Jenkins credentials: username
-        DOCKER_PASS = credentials('dockerhub-token')      // Jenkins credentials: PAT
-    }
-
     stages {
         stage('Checkout') {
             steps {

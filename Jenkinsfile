@@ -37,28 +37,14 @@ pipeline {
 
         stage('Build & Push Docker Image') {
             steps {
-                script {
-                    // Get short Git commit hash for tagging
-                    def gitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    def imageName = "aceestfitness:${BUILD_NUMBER}-${gitHash}"
-
-                    echo "Building Docker image: ${imageName}"
-
-                    // Login to DockerHub securely
-                    sh """
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    """
-
-                    // Build Docker image incrementally using BuildKit
-                    sh """
-                        DOCKER_BUILDKIT=1 docker build \
-                            --tag ${imageName} \
-                            --file Dockerfile \
-                            .
-                    """
-
-                    // Push image to DockerHub
-                    sh "docker push ${imageName}"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                        docker push $IMAGE_NAME:$IMAGE_TAG
+                    '''
                 }
             }
         }

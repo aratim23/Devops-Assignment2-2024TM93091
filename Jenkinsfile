@@ -21,19 +21,16 @@ pipeline {
         stage('Build & Test') {
             steps {
                 script {
-                    // Create virtual environment inside ACEestFitness
-                    sh """
+                    sh '''
+                        #!/bin/bash
                         python3 -m venv ACEestFitness/venv
                         source ACEestFitness/venv/bin/activate
                         pip install --upgrade pip
                         pip install --force-reinstall -r requirements.txt
-                    """
-
-                    // Run pytest from inside ACEestFitness
-                    sh """
-                        cd ACEestFitness
-                        ../venv/bin/pytest tests --maxfail=1 --disable-warnings -v
-                    """
+                        export PYTHONPATH=$PWD/ACEestFitness
+                        pytest ACEestFitness/tests --maxfail=1 --disable-warnings -v
+                        deactivate
+                    '''
                 }
             }
         }

@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "aceestfitness"   // DockerHub repo
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -43,7 +47,44 @@ pipeline {
                 }
             }
         }
-    
+
+        stage('Prepare') {
+            steps {
+                // Get short Git hash for unique tagging
+                script {
+                    env.GIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_HASH}"
+                    echo "Docker Image Tag: ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials', 
+                    usernameVariable: 'DOCKER_USER', 
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        # Login to DockerHub
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+
+                        # Build the image incrementally (layers are cached)
+                        docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+                        # Push the uniquely tagged image
+                        docker push $IMAGE_NAME:$IMAGE_TAG
+                    '''
+                }
+            }
+        }
     }
 
+    post {
+        always {
+            sh 'docker logout'
+        }
+    }
+    
 }

@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "aceestfitness"   // DockerHub repo
+        IMAGE_NAME = "amanoj23/aceestfitness"   // DockerHub repo
     }
 
     stages {

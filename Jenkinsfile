@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_USER = credentials('dockerhub-username')   // Jenkins credentials: username
+        DOCKER_PASS = credentials('dockerhub-token')      // Jenkins credentials: PAT
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -33,32 +38,31 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 script {
-                    // Get short commit hash for tagging
-                    def gitHash = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    def imageTag = "amanoj23/aceestfitness:${env.BUILD_NUMBER}-${gitHash}"
+                    // Get short Git commit hash for tagging
+                    def gitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    def imageName = "aceestfitness:${BUILD_NUMBER}-${gitHash}"
 
-                    // Enable Docker BuildKit for incremental build and caching
-                    withEnv(["DOCKER_BUILDKIT=1"]) {
+                    echo "Building Docker image: ${imageName}"
 
-                    // Login to DockerHub safely
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', 
-                                                 usernameVariable: 'DOCKER_USER', 
-                                                 passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
+                    // Login to DockerHub securely
+                    sh """
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    '''
-                    }
+                    """
 
-                    // Build the Docker image
-                    sh "docker build --progress=plain -t ${imageTag} ."
+                    // Build Docker image incrementally using BuildKit
+                    sh """
+                        DOCKER_BUILDKIT=1 docker build \
+                            --tag ${imageName} \
+                            --file Dockerfile \
+                            .
+                    """
 
-                    // Push the Docker image
-                    sh "docker push ${imageTag}"
+                    // Push image to DockerHub
+                    sh "docker push ${imageName}"
                 }
             }
         }
+    
     }
 
-
-    }
 }

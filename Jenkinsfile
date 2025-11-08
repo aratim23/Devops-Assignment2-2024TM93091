@@ -8,12 +8,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],  // or your branch
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
                     userRemoteConfigs: [[
-                        url: 'git@github.com:aratim23/Devops-Assignment2-2024TM93091.git',
-                        credentialsId: 'github-ssh-key'
+                        url: 'https://github.com/aratim23/Devops-Assignment2-2024TM93091.git',
+                        credentialsId: 'github-https-token'
                     ]]
                 ])
             }

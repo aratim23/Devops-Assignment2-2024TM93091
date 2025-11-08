@@ -17,16 +17,7 @@ pipeline {
                 ])
             }
         }
-
-        stage('Setup Python') {
-            steps {
-                sh '''
-                    sudo apt-get update -y
-                    sudo apt-get install -y python3-venv python3-pip
-                '''
-            }
-        }
-
+        
         stage('Build & Test') {
             steps {
                 script {

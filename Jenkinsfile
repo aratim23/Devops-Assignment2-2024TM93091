@@ -25,17 +25,17 @@ pipeline {
                     for (version in versions) {
                         dir(version) {
                             sh """
-                               python3 -m venv venv
-                               . venv/bin/activate
-                               pip install -r requirements.txt
-                               pytest || exit 1
-                               deactivate
+                                python3 -m venv venv
+                                ./venv/bin/pip install -r requirements.txt
+                                export PYTHONPATH=$PWD
+                                ./venv/bin/pytest --maxfail=1 --disable-warnings -v
                             """
                         }
                     }
                 }
             }
         }
+
 
         stage('Package Artifacts') {
             steps {

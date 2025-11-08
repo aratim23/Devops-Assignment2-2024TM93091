@@ -24,8 +24,9 @@ pipeline {
                     // Create virtual environment inside ACEestFitness
                     sh """
                         python3 -m venv ACEestFitness/venv
-                        ACEestFitness/venv/bin/pip install --upgrade pip
-                        ACEestFitness/venv/bin/pip install -r requirements.txt
+                        source ACEestFitness/venv/bin/activate
+                        pip install --upgrade pip
+                        pip install --force-reinstall -r requirements.txt
                     """
 
                     // Run pytest from inside ACEestFitness

@@ -1,5 +1,5 @@
 import pytest
-from app import app
+from ACEest-Fitness import app
 
 @pytest.fixture
 def client():

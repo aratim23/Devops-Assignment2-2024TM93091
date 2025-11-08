@@ -2,7 +2,9 @@ pipeline {
     agent any
 
     environment {
-        VERSIONS = "ACEestFitness"
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id') // Jenkins credentials ID
+        DOCKERHUB_USERNAME = "your-dockerhub-username"
+        APP_NAME = "aceestfitness"
     }
 
     stages {
@@ -34,23 +36,34 @@ pipeline {
             }
         }
 
-
-        stage('Package Artifacts') {
+        stage('Build & Push Docker Image') {
             steps {
                 script {
-                    def versions = env.VERSIONS.split()
-                    for (version in versions) {
-                        dir(version) {
-                            sh "tar czf ../${version}.tar.gz *"
-                        }
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '*.tar.gz', fingerprint: true
+                    // Get short Git commit hash
+                    def gitCommit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    
+                    // Create unique Docker image tag using build number + git commit
+                    def imageTag = "${env.BUILD_NUMBER}-${gitCommit}"
+                    def fullImageName = "${DOCKERHUB_USERNAME}/${APP_NAME}:${imageTag}"
+                    
+                    echo "Building Docker image: ${fullImageName}"
+                    
+                    // Build the Docker image
+                    sh "docker build -t ${fullImageName} ."
+                    
+                    // Login to Docker Hub
+                    sh "echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin"
+                    
+                    // Push uniquely tagged image
+                    sh "docker push ${fullImageName}"
+                    
+                    // Optionally, tag and push 'latest'
+                    def latestImage = "${DOCKERHUB_USERNAME}/${APP_NAME}:latest"
+                    sh "docker tag ${fullImageName} ${latestImage}"
+                    sh "docker push ${latestImage}"
                 }
             }
         }
+
     }
 }

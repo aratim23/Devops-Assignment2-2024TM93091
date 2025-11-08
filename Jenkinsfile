@@ -22,9 +22,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        #!/bin/bash
                         python3 -m venv ACEestFitness/venv
-                        source ACEestFitness/venv/bin/activate
+                        . ACEestFitness/venv/bin/activate
                         pip install --upgrade pip
                         pip install --force-reinstall -r requirements.txt
                         export PYTHONPATH=$PWD/ACEestFitness

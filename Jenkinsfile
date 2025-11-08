@@ -22,12 +22,17 @@ pipeline {
             steps {
                 dir("${WORKSPACE}") {  // ensure we're in workspace root
                 sh """
+                    # from workspace root
                     python3 -m venv venv
                     ./venv/bin/pip install --upgrade pip
                     ./venv/bin/pip install -r requirements.txt
 
+                    # set PYTHONPATH to the module folder
                     export PYTHONPATH=$PWD/ACEestFitness
+
+                    # run tests pointing to tests folder in repo
                     ./venv/bin/pytest ./tests --maxfail=1 --disable-warnings -v
+
                 """
                 }
             }

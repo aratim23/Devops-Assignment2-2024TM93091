@@ -20,21 +20,19 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir("${WORKSPACE}") {  // ensure we're in workspace root
-                sh """
-                    # 1. Create virtual environment inside ACEestFitness
-                    python3 -m venv ACEestFitness/venv
+                script {
+                // Create Python virtual environment inside ACEestFitness folder
+                    sh """
+                        python3 -m venv ACEestFitness/venv
+                        ACEestFitness/venv/bin/pip install --upgrade pip
+                        ACEestFitness/venv/bin/pip install -r requirements.txt
+                    """
 
-                    # 2. Upgrade pip and install dependencies
-                    ACEestFitness/venv/bin/pip install --upgrade pip
-                    ACEestFitness/venv/bin/pip install -r requirements.txt
-
-                    # 3. Set PYTHONPATH to ACEestFitness so tests can import the module
-                    export PYTHONPATH=$PWD
-
-                    # 4. Run pytest from the ACEestFitness folder
-                    ACEestFitness/venv/bin/pytest ACEestFitness/tests --maxfail=1 --disable-warnings -v
-                """
+                // Set PYTHONPATH to workspace root so ACEestFitness is importable
+                    sh """
+                        export PYTHONPATH=$PWD
+                        ACEestFitness/venv/bin/pytest ACEestFitness/tests --maxfail=1 --disable-warnings -v
+                    """
                 }
             }
         }

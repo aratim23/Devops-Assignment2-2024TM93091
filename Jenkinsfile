@@ -20,27 +20,18 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                script {
-                    // Use the main repo folder
-                    dir('ACEestFitness') {
-                    // Create virtual environment
-                    sh """
-                        python3 -m venv ../venv
-                        ../venv/bin/pip install --upgrade pip
-                        ../venv/bin/pip install -r ../requirements.txt
-                    """
-                    }
+                dir("${WORKSPACE}") {  // ensure we're in workspace root
+                sh """
+                    python3 -m venv venv
+                    ./venv/bin/pip install --upgrade pip
+                    ./venv/bin/pip install -r requirements.txt
 
-                    // Run tests from repo root, adding ACEestFitness to PYTHONPATH
-                    sh """
-                        export PYTHONPATH=$PWD/ACEestFitness
-                        ./venv/bin/pytest ./tests --maxfail=1 --disable-warnings -v
-                    """
-                    }
+                    export PYTHONPATH=$PWD/ACEestFitness
+                    ./venv/bin/pytest ./tests --maxfail=1 --disable-warnings -v
+                """
                 }
             }
-
-
+        }
 
         stage('Package Artifacts') {
             steps {

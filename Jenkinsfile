@@ -30,7 +30,7 @@ pipeline {
                     ACEestFitness/venv/bin/pip install -r requirements.txt
 
                     # 3. Set PYTHONPATH to ACEestFitness so tests can import the module
-                    export PYTHONPATH=$PWD/ACEestFitness
+                    export PYTHONPATH=$PWD
 
                     # 4. Run pytest from the ACEestFitness folder
                     ACEestFitness/venv/bin/pytest ACEestFitness/tests --maxfail=1 --disable-warnings -v

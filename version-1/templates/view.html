@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>View Workouts - ACEestFitness</title>
+</head>
+<body>
+  <h1>Logged Workouts</h1>
+  {% if workouts %}
+    <ul>
+      {% for w in workouts %}
+      <li>{{ w.workout }} - {{ w.duration }} minutes</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No workouts logged yet.</p>
+  {% endif %}
+  <a href="{{ url_for('index') }}">Add More Workouts</a>
+</body>
+</html>

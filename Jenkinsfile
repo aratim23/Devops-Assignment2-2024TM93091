@@ -27,7 +27,7 @@ pipeline {
 
                     # 2. Upgrade pip and install dependencies
                     ACEestFitness/venv/bin/pip install --upgrade pip
-                    ACEestFitness/venv/bin/pip install -r ACEestFitness/requirements.txt
+                    ACEestFitness/venv/bin/pip install -r requirements.txt
 
                     # 3. Set PYTHONPATH to ACEestFitness so tests can import the module
                     export PYTHONPATH=$PWD/ACEestFitness

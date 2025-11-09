@@ -34,6 +34,13 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            def scannerHome = tool 'SonarScanner';
+                withSonarQubeEnv() {
+                    sh "${scannerHome}/bin/sonar-scanner"
+                }
+            }
+
         stage('Prepare') {
             steps {
                 // Get short Git hash for unique tagging

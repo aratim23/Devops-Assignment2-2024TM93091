@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fitness-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fitness-app
+  template:
+    metadata:
+      labels:
+        app: fitness-app
+    spec:
+      containers:
+        - name: fitness-app
+          image: amanoj23/aceestfitness:63-5cbe58e
+          ports:
+            - containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"

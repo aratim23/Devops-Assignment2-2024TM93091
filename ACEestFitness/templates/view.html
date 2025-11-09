@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>View Workouts - ACEestFitness</title>
-</head>
+<html>
+<head><title>View Workouts - ACEestFitness V1.1</title></head>
 <body>
-  <h1>Logged Workouts</h1>
-  {% if workouts %}
+<h1>Logged Workouts - V1.1</h1>
+{% for category, entries in workouts.items() %}
+  <h2>{{ category }}</h2>
+  {% if entries %}
     <ul>
-      {% for w in workouts %}
-      <li>{{ w.workout }} - {{ w.duration }} minutes</li>
+      {% for e in entries %}
+      <li>{{ e.exercise }} - {{ e.duration }} minutes</li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>No workouts logged yet.</p>
+    <p>No workouts for {{ category }}</p>
   {% endif %}
-  <a href="{{ url_for('index') }}">Add More Workouts</a>
+{% endfor %}
+<a href="{{ url_for('index') }}">Add More Workouts</a>
 </body>
 </html>

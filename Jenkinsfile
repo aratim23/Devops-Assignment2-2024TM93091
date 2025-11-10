@@ -76,36 +76,47 @@ pipeline {
     }
 
     stage('Deploy to Minikube (dockerized kubectl)') {
-      steps {
-        // Provide kubeconfig as a Jenkins Secret file (ID: kubeconfig-minikube)
-        withCredentials([file(credentialsId: 'kubeconfig-minikube', variable: 'KCFG')]) {
-          sh '''
-            set -eux
+        steps {
+            // Provide kubeconfig as a Jenkins Secret file (ID: kubeconfig-minikube)
+            withCredentials([file(credentialsId: 'kubeconfig-minikube', variable: 'KCFG')]) {
+            sh '''
+                set -eux
 
-            # Helper to run kubectl via Docker (no kubectl on agent needed)
-            KUBEIMG="bitnami/kubectl:1.30"
-            DOCKER_KUBECTL="docker run --rm -v \\"$KCFG\\":/kubeconfig:ro -e KUBECONFIG=/kubeconfig $KUBEIMG kubectl"
+                # Prefer the upstream kubectl image; fall back to Bitnami latest if needed
+                KUBEIMG_PRIMARY="registry.k8s.io/kubectl:v1.30.4"
+                KUBEIMG_FALLBACK="bitnami/kubectl:latest"
 
-            # Confirm context reachable
-            $DOCKER_KUBECTL version --client
-            $DOCKER_KUBECTL cluster-info
+                # Try to pull a known-good tag; if it fails, use fallback
+                if ! docker pull "$KUBEIMG_PRIMARY" >/dev/null 2>&1; then
+                    docker pull "$KUBEIMG_FALLBACK"
+                    KUBEIMG="$KUBEIMG_FALLBACK"
+                else
+                    KUBEIMG="$KUBEIMG_PRIMARY"
+                fi
 
-            # Ensure namespace exists
-            $DOCKER_KUBECTL get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || \
-              $DOCKER_KUBECTL create ns ${K8S_NAMESPACE}
+                # Helper: run kubectl via Docker (no kubectl installed on agent)
+                DOCKER_KUBECTL="docker run --rm -v \\"$KCFG\\":/kubeconfig:ro -e KUBECONFIG=/kubeconfig $KUBEIMG kubectl"
 
-            # Update deployment image to the freshly pushed tag
-            $DOCKER_KUBECTL -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
-              ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
+                # Sanity
+                $DOCKER_KUBECTL version --client
+                $DOCKER_KUBECTL cluster-info
 
-            # Wait for rollout to finish
-            $DOCKER_KUBECTL -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
-          '''
+                # Ensure namespace exists
+                $DOCKER_KUBECTL get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || \
+                $DOCKER_KUBECTL create ns ${K8S_NAMESPACE}
+
+                # Update deployment image to the freshly pushed tag
+                $DOCKER_KUBECTL -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
+                ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
+
+                # Wait for rollout
+                $DOCKER_KUBECTL -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
+            '''
+            }
         }
-      }
     }
   }
-
+  
   post {
     always {
       sh 'docker logout || true'

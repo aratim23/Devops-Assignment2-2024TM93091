@@ -74,43 +74,6 @@ pipeline {
         }
       }
     }
-
-    stage('Deploy to Minikube (dockerized kubectl)') {
-  steps {
-    withCredentials([file(credentialsId: 'kubeconfig-minikube', variable: 'KCFG')]) {
-      sh '''
-        set -eux
-
-        KUBEIMG="registry.k8s.io/kubectl:v1.30.4"
-        docker pull "$KUBEIMG"
-
-        # Helper (no trailing 'kubectl' here)
-        DOCKER_KUBECTL="docker run --rm \
-          --mount type=bind,source=${KCFG},target=/kubeconfig,readonly \
-          -e KUBECONFIG=/kubeconfig \
-          $KUBEIMG"
-
-        # Sanity
-        $DOCKER_KUBECTL version --client
-        $DOCKER_KUBECTL cluster-info
-
-        # Ensure namespace
-        $DOCKER_KUBECTL get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || \
-          $DOCKER_KUBECTL create ns ${K8S_NAMESPACE}
-
-        # Update image tag on deployment
-        $DOCKER_KUBECTL -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
-          ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
-
-        # Wait for rollout
-        $DOCKER_KUBECTL -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
-      '''
-    }
-  }
-}
-
-
-
   }
 
   post {

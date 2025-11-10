@@ -75,33 +75,30 @@ pipeline {
       }
     }
 
-    stage('Deploy to Minikube (WSL agent)') {
+    stage('Deploy to Minikube (WSL)') {
   environment {
     K8S_NAMESPACE   = "fitness-app"
     DEPLOYMENT_NAME = "fitness-app"
     CONTAINER_NAME  = "fitness-app-container"
+    KUBECONFIG      = "/var/lib/jenkins/.kube/config"
   }
   steps {
     sh '''
       set -eux
-      # Use WSL’s kubeconfig (Minikube is in WSL)
-      export KUBECONFIG="$HOME/.kube/config"
 
-      # Make sure context is minikube
-      kubectl config use-context minikube
+      # Confirm Jenkins is using WSL Minikube config
+      kubectl config current-context
 
-      # Ensure namespace exists
-      kubectl get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || kubectl create ns ${K8S_NAMESPACE}
-
-      # Update the image tag pushed in the previous stage
+      # Update deployment image with new tag
       kubectl -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
         ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
 
-      # Wait for rollout
+      # Wait for rollout to complete
       kubectl -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
     '''
   }
 }
+
 
 
   }

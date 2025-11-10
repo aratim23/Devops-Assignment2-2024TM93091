@@ -77,27 +77,22 @@ pipeline {
 
     stage('Deploy to Minikube (dockerized kubectl)') {
         steps {
-            // Provide kubeconfig as a Jenkins Secret file (ID: kubeconfig-minikube)
             withCredentials([file(credentialsId: 'kubeconfig-minikube', variable: 'KCFG')]) {
             sh '''
                 set -eux
 
-                # Prefer the upstream kubectl image; fall back to Bitnami latest if needed
+                # Pick a known-good kubectl image; pull explicitly
                 KUBEIMG_PRIMARY="registry.k8s.io/kubectl:v1.30.4"
-                KUBEIMG_FALLBACK="bitnami/kubectl:latest"
+                docker pull "$KUBEIMG_PRIMARY"
+                KUBEIMG="$KUBEIMG_PRIMARY"
 
-                # Try to pull a known-good tag; if it fails, use fallback
-                if ! docker pull "$KUBEIMG_PRIMARY" >/dev/null 2>&1; then
-                    docker pull "$KUBEIMG_FALLBACK"
-                    KUBEIMG="$KUBEIMG_FALLBACK"
-                else
-                    KUBEIMG="$KUBEIMG_PRIMARY"
-                fi
+                # Helper to run kubectl via Docker (NO quotes around ${KCFG}; use --mount)
+                DOCKER_KUBECTL="docker run --rm \
+                --mount type=bind,source=${KCFG},target=/kubeconfig,readonly \
+                -e KUBECONFIG=/kubeconfig \
+                $KUBEIMG kubectl"
 
-                # Helper: run kubectl via Docker (no kubectl installed on agent)
-                DOCKER_KUBECTL="docker run --rm -v \\"$KCFG\\":/kubeconfig:ro -e KUBECONFIG=/kubeconfig $KUBEIMG kubectl"
-
-                # Sanity
+                # Sanity check: client version & cluster reachability
                 $DOCKER_KUBECTL version --client
                 $DOCKER_KUBECTL cluster-info
 
@@ -105,18 +100,19 @@ pipeline {
                 $DOCKER_KUBECTL get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || \
                 $DOCKER_KUBECTL create ns ${K8S_NAMESPACE}
 
-                # Update deployment image to the freshly pushed tag
+                # Update the deployment image to the fresh tag
                 $DOCKER_KUBECTL -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
                 ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
 
-                # Wait for rollout
+                # Wait for rollout to complete
                 $DOCKER_KUBECTL -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
             '''
-            }
         }
     }
+    }
+
   }
-  
+
   post {
     always {
       sh 'docker logout || true'

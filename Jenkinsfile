@@ -6,6 +6,7 @@ pipeline {
     K8S_NAMESPACE    = "fitness-app"
     DEPLOYMENT_NAME  = "fitness-app"
     CONTAINER_NAME   = "fitness-app-container"
+    // IMAGE_TAG is set in "Prepare" stage: BUILD_NUMBER-shortSHA
   }
 
   stages {
@@ -24,6 +25,7 @@ pipeline {
     stage('Build & Test') {
       steps {
         sh '''
+          set -eux
           python3 -m venv ACEestFitness/venv
           . ACEestFitness/venv/bin/activate
           pip install --upgrade pip
@@ -38,8 +40,8 @@ pipeline {
     stage('SonarQube Analysis') {
       steps {
         script {
-          def scannerHome = tool 'SonarScanner'   // Jenkins tool named "SonarScanner"
-          withSonarQubeEnv('SonarQube') {         // Jenkins server config named "SonarQube"
+          def scannerHome = tool 'SonarScanner'    // Jenkins tool named "SonarScanner"
+          withSonarQubeEnv('SonarQube') {          // Jenkins server config named "SonarQube"
             sh "${scannerHome}/bin/sonar-scanner"
           }
         }
@@ -64,6 +66,7 @@ pipeline {
           passwordVariable: 'DOCKER_PASS'
         )]) {
           sh '''
+            set -eux
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker build -t $IMAGE_NAME:$IMAGE_TAG .
             docker push  $IMAGE_NAME:$IMAGE_TAG
@@ -72,28 +75,33 @@ pipeline {
       }
     }
 
-    stage('Deploy to Minikube') {
+    stage('Deploy to Minikube (dockerized kubectl)') {
       steps {
-        sh '''
-          set -eux
-          # Use the minikube context (must exist on this agent)
-          kubectl config use-context minikube
+        // Provide kubeconfig as a Jenkins Secret file (ID: kubeconfig-minikube)
+        withCredentials([file(credentialsId: 'kubeconfig-minikube', variable: 'KCFG')]) {
+          sh '''
+            set -eux
 
-          # Ensure namespace exists
-          kubectl get ns ${K8S_NAMESPACE} || kubectl create ns ${K8S_NAMESPACE}
+            # Helper to run kubectl via Docker (no kubectl on agent needed)
+            KUBEIMG="bitnami/kubectl:1.30"
+            DOCKER_KUBECTL="docker run --rm -v \\"$KCFG\\":/kubeconfig:ro -e KUBECONFIG=/kubeconfig $KUBEIMG kubectl"
 
-          # Update Deployment to the new tag
-          kubectl -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
-            ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
+            # Confirm context reachable
+            $DOCKER_KUBECTL version --client
+            $DOCKER_KUBECTL cluster-info
 
-          # (Optional) enforce pulling fresh tag; not strictly needed since tag is unique
-          kubectl -n ${K8S_NAMESPACE} patch deployment/${DEPLOYMENT_NAME} \
-            --type='merge' -p \
-            '{"spec":{"template":{"spec":{"containers":[{"name":"'${CONTAINER_NAME}'","imagePullPolicy":"Always"}]}}}}'
+            # Ensure namespace exists
+            $DOCKER_KUBECTL get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || \
+              $DOCKER_KUBECTL create ns ${K8S_NAMESPACE}
 
-          # Wait for rollout
-          kubectl -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
-        '''
+            # Update deployment image to the freshly pushed tag
+            $DOCKER_KUBECTL -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
+              ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
+
+            # Wait for rollout to finish
+            $DOCKER_KUBECTL -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
+          '''
+        }
       }
     }
   }

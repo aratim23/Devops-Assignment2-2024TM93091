@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: fitness-app
-          image: amanoj23/aceestfitness:63-5cbe58e
+          image: amanoj23/aceestfitness:79-cc47cc0
           ports:
             - containerPort: 5000
           readinessProbe:

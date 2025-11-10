@@ -87,7 +87,7 @@ pipeline {
       set -eux
 
       # Confirm Jenkins is using WSL Minikube config
-      kubectl config current-context
+      kubectl config use-context minikube
 
       # Update deployment image with new tag
       kubectl -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \

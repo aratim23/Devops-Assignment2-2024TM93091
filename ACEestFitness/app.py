@@ -33,4 +33,4 @@ def view_workouts():
     return render_template('view.html', workouts=workouts)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

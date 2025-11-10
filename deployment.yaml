@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fitness-app
+  labels:
+    app: fitness-app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: fitness-app
@@ -13,26 +15,11 @@ spec:
         app: fitness-app
     spec:
       containers:
-        - name: fitness-app
-          image: amanoj23/aceestfitness:79-cc47cc0
-          ports:
-            - containerPort: 5000
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 5000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 5000
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
-              cpu: "500m"
-              memory: "256Mi"
+      - name: fitness-app-container
+        image: fitness-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        workingDir: /app/ACEestFitness
+        command: ["python"]
+        args: ["app.py"]

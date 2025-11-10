@@ -1,23 +1,18 @@
-# Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
-# Set the working directory inside the container
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# Copy requirements to the container
+# Install deps first for better caching
 COPY requirements.txt /app/
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire ACEestFitness folder into the container's /app folder
+# Copy the app
 COPY ACEestFitness /app/ACEestFitness
 
-# Expose the port your Flask app runs on
-EXPOSE 5000
-
-# Set the working directory to ACEestFitness where app.py is
+# Work from inside the package and run the script directly
 WORKDIR /app/ACEestFitness
-
-# Run the app
+EXPOSE 5000
 CMD ["python", "app.py"]

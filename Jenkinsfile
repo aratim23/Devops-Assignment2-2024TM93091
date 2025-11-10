@@ -76,40 +76,56 @@ pipeline {
     }
 
     stage('Deploy to Minikube (dockerized kubectl)') {
-        steps {
-            withCredentials([file(credentialsId: 'kubeconfig-minikube', variable: 'KCFG')]) {
-            sh '''
-                set -eux
+  steps {
+    withCredentials([file(credentialsId: 'kubeconfig-minikube', variable: 'KCFG')]) {
+      sh '''
+        set -eux
 
-                # Pick a known-good kubectl image; pull explicitly
-                KUBEIMG_PRIMARY="registry.k8s.io/kubectl:v1.30.4"
-                docker pull "$KUBEIMG_PRIMARY"
-                KUBEIMG="$KUBEIMG_PRIMARY"
+        # Use a known-good kubectl image
+        KUBEIMG="registry.k8s.io/kubectl:v1.30.4"
+        docker pull "$KUBEIMG"
 
-                # Helper to run kubectl via Docker (NO quotes around ${KCFG}; use --mount)
-                DOCKER_KUBECTL="docker run --rm \
-                --mount type=bind,source=${KCFG},target=/kubeconfig,readonly \
-                -e KUBECONFIG=/kubeconfig \
-                $KUBEIMG kubectl"
+        # Copy kubeconfig into workspace (contents remain secret; Jenkins masks logs)
+        cp "$KCFG" kubeconfig
 
-                # Sanity check: client version & cluster reachability
-                $DOCKER_KUBECTL version --client
-                $DOCKER_KUBECTL cluster-info
+        # Run kubectl via Docker. NOTE: use --mount; do NOT quote the path.
+        docker run --rm \
+          --mount type=bind,source="$PWD/kubeconfig",target=/kubeconfig,readonly \
+          -e KUBECONFIG=/kubeconfig \
+          "$KUBEIMG" kubectl version --client
 
-                # Ensure namespace exists
-                $DOCKER_KUBECTL get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || \
-                $DOCKER_KUBECTL create ns ${K8S_NAMESPACE}
+        docker run --rm \
+          --mount type=bind,source="$PWD/kubeconfig",target=/kubeconfig,readonly \
+          -e KUBECONFIG=/kubeconfig \
+          "$KUBEIMG" kubectl cluster-info
 
-                # Update the deployment image to the fresh tag
-                $DOCKER_KUBECTL -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
-                ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
+        # Ensure namespace exists
+        docker run --rm \
+          --mount type=bind,source="$PWD/kubeconfig",target=/kubeconfig,readonly \
+          -e KUBECONFIG=/kubeconfig \
+          "$KUBEIMG" kubectl get ns ${K8S_NAMESPACE} >/dev/null 2>&1 || \
+        docker run --rm \
+          --mount type=bind,source="$PWD/kubeconfig",target=/kubeconfig,readonly \
+          -e KUBECONFIG=/kubeconfig \
+          "$KUBEIMG" kubectl create ns ${K8S_NAMESPACE}
 
-                # Wait for rollout to complete
-                $DOCKER_KUBECTL -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
-            '''
-        }
+        # Update image to the fresh tag
+        docker run --rm \
+          --mount type=bind,source="$PWD/kubeconfig",target=/kubeconfig,readonly \
+          -e KUBECONFIG=/kubeconfig \
+          "$KUBEIMG" kubectl -n ${K8S_NAMESPACE} set image deployment/${DEPLOYMENT_NAME} \
+          ${CONTAINER_NAME}=${IMAGE_NAME}:${IMAGE_TAG}
+
+        # Wait for rollout
+        docker run --rm \
+          --mount type=bind,source="$PWD/kubeconfig",target=/kubeconfig,readonly \
+          -e KUBECONFIG=/kubeconfig \
+          "$KUBEIMG" kubectl -n ${K8S_NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME}
+      '''
     }
-    }
+  }
+}
+
 
   }
 
